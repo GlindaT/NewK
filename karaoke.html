@@ -88,10 +88,6 @@
       animation: pulse 0.5s ease-in-out infinite;
     }
     
-    .trend-arrow.up { color: #4caf50; }
-    .trend-arrow.down { color: #f44336; }
-    .trend-arrow.stable { color: #ff9800; animation: none; }
-    
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.2); }
@@ -216,10 +212,15 @@
       color: white;
     }
     
-    .btn-start:hover {
+    .btn-start:hover:not(:disabled) {
       background: #45a049;
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+    }
+    
+    .btn-start:disabled {
+      background: #ccc;
+      cursor: not-allowed;
     }
     
     .btn-stop {
@@ -230,6 +231,18 @@
     .btn-stop:hover {
       background: #da190b;
       transform: translateY(-2px);
+    }
+    
+    .console-log {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      max-height: 100px;
+      overflow-y: auto;
+      color: #333;
     }
   </style>
 </head>
@@ -285,9 +298,32 @@
     <button class="btn-start" id="startBtn" onclick="startKaraoke()">Iniciar</button>
     <button class="btn-stop" id="stopBtn" onclick="stopKaraoke()" style="display:none;">Detener</button>
   </div>
+  
+  <div class="console-log" id="consoleLog" style="display: none;"></div>
 </div>
 
 <script>
+// ============ LOGGING HELPER ============
+const consoleLog = document.getElementById('consoleLog');
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function(...args) {
+  originalLog(...args);
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+  consoleLog.style.display = 'block';
+  consoleLog.innerHTML += msg + '<br>';
+  consoleLog.scrollTop = consoleLog.scrollHeight;
+};
+
+console.error = function(...args) {
+  originalError(...args);
+  const msg = '❌ ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+  consoleLog.style.display = 'block';
+  consoleLog.innerHTML += '<span style="color:red;">' + msg + '</span><br>';
+  consoleLog.scrollTop = consoleLog.scrollHeight;
+};
+
 // ============ CLASES ============
 
 class AdvancedKaraokeDetector {
@@ -324,6 +360,7 @@ class AdvancedKaraokeDetector {
       this.voiceType = 'unknown';
     }
     
+    console.log(`🎤 Voz: ${this.voiceType} (${avgFreq.toFixed(0)} Hz)`);
     return this.voiceType;
   }
   
@@ -465,16 +502,6 @@ class AdvancedKaraokeDetector {
       return 'down';
     }
   }
-  
-  getTrendIntensity() {
-    if (this.frequencyTrend.length < 3) return 0;
-    
-    const recent = this.frequencyTrend.slice(-5);
-    const avgOld = recent.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
-    const avgNew = recent.slice(-2).reduce((a, b) => a + b, 0) / 2;
-    
-    return Math.abs(avgNew - avgOld);
-  }
 }
 
 const NOTES = {
@@ -491,8 +518,6 @@ class KaraokeScorer {
     this.totalScore = 0;
     this.notesHit = 0;
     this.notesMissed = 0;
-    this.currentLineScore = 0;
-    this.currentLineNotes = 0;
   }
   
   evaluateNote(samples, expectedNote) {
@@ -506,7 +531,6 @@ class KaraokeScorer {
         accuracy: 0,
         isCorrect: false,
         trend: 'silent',
-        trendIntensity: 0,
       };
     }
     
@@ -515,16 +539,13 @@ class KaraokeScorer {
     
     const isCorrect = accuracy > 0.85;
     const trend = this.detector.getTrend();
-    const trendIntensity = this.detector.getTrendIntensity();
     
     if (isCorrect) {
       this.notesHit++;
-      this.currentLineScore += Math.round(accuracy * 100);
+      this.totalScore += Math.round(accuracy * 100);
     } else {
       this.notesMissed++;
     }
-    
-    this.currentLineNotes++;
     
     return {
       detected: detectedFreq.toFixed(1),
@@ -533,7 +554,6 @@ class KaraokeScorer {
       isCorrect,
       note: expectedNote,
       trend,
-      trendIntensity: trendIntensity.toFixed(1),
     };
   }
   
@@ -555,24 +575,45 @@ let audioContext = null;
 let processor = null;
 let isRunning = false;
 
-let songNotes = [
-  'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'
-];
+let songNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
 let currentNoteIndex = 0;
 
 // ============ FUNCIONES ============
 
 async function startKaraoke() {
   try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    console.log('⏳ Solicitando permiso de micrófono...');
+    document.getElementById('startBtn').disabled = true;
+    
+    // ⭐ PRIMERO: Obtener permiso de micrófono
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log('✅ Micrófono permitido');
+    
+    // ⭐ SEGUNDO: Crear AudioContext DESPUÉS del stream
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContextClass();
+    console.log('✅ AudioContext creado - Sample Rate:', audioContext.sampleRate);
+    
+    // Resume si está suspendido
+    if (audioContext.state === 'suspended') {
+      console.log('⏳ AudioContext suspendido, reanudando...');
+      await audioContext.resume();
+      console.log('✅ AudioContext reanudado');
+    }
+    
+    // ⭐ TERCERO: Inicializar detector y scorer
     detector = new AdvancedKaraokeDetector(audioContext.sampleRate);
     scorer = new KaraokeScorer(detector);
+    console.log('✅ Detector y Scorer inicializados');
     
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // ⭐ CUARTO: Crear source del micrófono
     const source = audioContext.createMediaStreamAudioSource(stream);
+    console.log('✅ MediaStreamAudioSource creado');
     
+    // ⭐ QUINTO: Script processor
     const bufferSize = 2048;
     processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    console.log('✅ ScriptProcessor creado');
     
     let voiceDetectCount = 0;
     
@@ -596,25 +637,38 @@ async function startKaraoke() {
       }
     };
     
+    // ⭐ SEXTO: Conectar nodos
     source.connect(processor);
     processor.connect(audioContext.destination);
+    console.log('✅ Nodos conectados');
     
     isRunning = true;
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('stopBtn').style.display = 'block';
     
+    console.log('✅✅✅ ¡KARAOKE INICIADO! ¡Empieza a cantar! 🎵');
+    
   } catch (error) {
-    alert('Error al acceder al micrófono: ' + error.message);
+    console.error('Error:', error.name, '-', error.message);
+    alert('❌ Error: ' + error.message + '\n\nAsegúrate de permitir acceso al micrófono.');
+    document.getElementById('startBtn').disabled = false;
   }
 }
 
 function stopKaraoke() {
-  if (processor) processor.disconnect();
-  if (audioContext) audioContext.close();
+  if (processor) {
+    processor.disconnect();
+    processor.onaudioprocess = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+  }
   
   isRunning = false;
   document.getElementById('startBtn').style.display = 'block';
+  document.getElementById('startBtn').disabled = false;
   document.getElementById('stopBtn').style.display = 'none';
+  console.log('⏹️ Karaoke detenido');
 }
 
 function updateUI(result) {
@@ -677,6 +731,8 @@ function updateVoiceTypeUI() {
     voiceTypeEl.textContent = voiceType === 'male' ? '🎙️ Voz de Hombre' : '🎤 Voz de Mujer';
   }
 }
+
+console.log('✅ Script cargado correctamente');
 </script>
 
 </body>
