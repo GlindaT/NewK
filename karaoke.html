@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🎤 Karaoke Detector</title>
   <style>
     * { box-sizing: border-box; }
-    
+
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -17,7 +17,7 @@
       margin: 0;
       padding: 20px;
     }
-    
+
     .karaoke-container {
       background: white;
       border-radius: 20px;
@@ -26,18 +26,18 @@
       max-width: 600px;
       width: 100%;
     }
-    
+
     .header {
       text-align: center;
       margin-bottom: 30px;
     }
-    
+
     .header h1 {
       margin: 0;
       color: #667eea;
       font-size: 28px;
     }
-    
+
     .voice-type {
       display: inline-block;
       margin-top: 10px;
@@ -47,12 +47,12 @@
       font-size: 14px;
       color: #666;
     }
-    
+
     .voice-type.detected {
       background: #e8f5e9;
       color: #2e7d32;
     }
-    
+
     .frequency-section {
       margin: 30px 0;
       padding: 20px;
@@ -60,7 +60,7 @@
       border-radius: 15px;
       text-align: center;
     }
-    
+
     .current-frequency {
       font-size: 48px;
       font-weight: bold;
@@ -68,13 +68,13 @@
       margin: 10px 0;
       font-family: 'Courier New', monospace;
     }
-    
+
     .expected-frequency {
       font-size: 24px;
       color: #999;
       margin: 5px 0;
     }
-    
+
     .trend-indicator {
       margin-top: 15px;
       display: flex;
@@ -82,21 +82,21 @@
       justify-content: center;
       gap: 10px;
     }
-    
+
     .trend-arrow {
       font-size: 24px;
       animation: pulse 0.5s ease-in-out infinite;
     }
-    
+
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.2); }
     }
-    
+
     .accuracy-section {
       margin: 30px 0;
     }
-    
+
     .accuracy-label {
       display: flex;
       justify-content: space-between;
@@ -104,7 +104,7 @@
       font-size: 14px;
       color: #666;
     }
-    
+
     .accuracy-bar-container {
       width: 100%;
       height: 30px;
@@ -112,7 +112,7 @@
       border-radius: 15px;
       overflow: hidden;
     }
-    
+
     .accuracy-bar {
       height: 100%;
       background: linear-gradient(90deg, #f44336, #ff9800, #4caf50);
@@ -124,7 +124,7 @@
       font-weight: bold;
       font-size: 12px;
     }
-    
+
     .note-section {
       margin: 30px 0;
       padding: 20px;
@@ -132,30 +132,30 @@
       border-radius: 10px;
       text-align: center;
     }
-    
+
     .note-expected {
       font-size: 32px;
       font-weight: bold;
       color: #667eea;
     }
-    
+
     .note-feedback {
       padding: 10px 15px;
       margin-top: 10px;
       border-radius: 8px;
       font-weight: 600;
     }
-    
+
     .note-feedback.correct {
       background: #c8e6c9;
       color: #2e7d32;
     }
-    
+
     .note-feedback.incorrect {
       background: #ffcdd2;
       color: #c62828;
     }
-    
+
     .score-section {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -164,38 +164,38 @@
       margin-top: 30px;
       text-align: center;
     }
-    
+
     .score-value {
       font-size: 48px;
       font-weight: bold;
       margin: 10px 0;
     }
-    
+
     .score-stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 15px;
       margin-top: 15px;
     }
-    
+
     .score-stat {
       padding: 10px;
       background: rgba(255,255,255,0.2);
       border-radius: 8px;
       font-size: 14px;
     }
-    
+
     .score-stat-value {
       font-size: 20px;
       font-weight: bold;
     }
-    
+
     .button-group {
       display: flex;
       gap: 10px;
       margin-top: 20px;
     }
-    
+
     button {
       flex: 1;
       padding: 12px 20px;
@@ -206,33 +206,33 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
-    
+
     .btn-start {
       background: #4caf50;
       color: white;
     }
-    
+
     .btn-start:hover:not(:disabled) {
       background: #45a049;
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
     }
-    
+
     .btn-start:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
-    
+
     .btn-stop {
       background: #f44336;
       color: white;
     }
-    
+
     .btn-stop:hover {
       background: #da190b;
       transform: translateY(-2px);
     }
-    
+
     .console-log {
       margin-top: 20px;
       padding: 10px;
@@ -243,511 +243,489 @@
       max-height: 100px;
       overflow-y: auto;
       color: #333;
+      display: none;
     }
   </style>
 </head>
 <body>
+  <div class="karaoke-container">
+    <div class="header">
+      <h1>🎤 Karaoke Detector</h1>
+      <div class="voice-type" id="voiceType">Detectando voz...</div>
+    </div>
 
-<div class="karaoke-container">
-  <div class="header">
-    <h1>🎤 Karaoke Detector</h1>
-    <div class="voice-type" id="voiceType">Detectando voz...</div>
-  </div>
-  
-  <div class="frequency-section">
-    <div class="current-frequency" id="currentFreq">-- Hz</div>
-    <div class="expected-frequency">Esperada: <span id="expectedFreq">-- Hz</span></div>
-    <div class="trend-indicator">
-      <span style="font-weight: 600;">Movimiento:</span>
-      <span class="trend-arrow" id="trendArrow">→</span>
-    </div>
-  </div>
-  
-  <div class="accuracy-section">
-    <div class="accuracy-label">
-      <span>Exactitud</span>
-      <span id="accuracyText">0%</span>
-    </div>
-    <div class="accuracy-bar-container">
-      <div class="accuracy-bar" id="accuracyBar" style="width: 0%"></div>
-    </div>
-  </div>
-  
-  <div class="note-section">
-    <div class="note-expected" id="noteExpected">C4</div>
-    <div style="font-size: 12px; color: #999; margin-top: 5px;">Nota esperada</div>
-    <div class="note-feedback" id="noteFeedback">Esperando audio...</div>
-  </div>
-  
-  <div class="score-section">
-    <div>Puntuación</div>
-    <div class="score-value" id="totalScore">0</div>
-    <div class="score-stats">
-      <div class="score-stat">
-        <div>Notas Correctas</div>
-        <div class="score-stat-value" id="notesHit">0</div>
-      </div>
-      <div class="score-stat">
-        <div>Notas Perdidas</div>
-        <div class="score-stat-value" id="notesMissed">0</div>
+    <div class="frequency-section">
+      <div class="current-frequency" id="currentFreq">-- Hz</div>
+      <div class="expected-frequency">Esperada: <span id="expectedFreq">-- Hz</span></div>
+      <div class="trend-indicator">
+        <span style="font-weight: 600;">Movimiento:</span>
+        <span class="trend-arrow" id="trendArrow">→</span>
       </div>
     </div>
+
+    <div class="accuracy-section">
+      <div class="accuracy-label">
+        <span>Exactitud</span>
+        <span id="accuracyText">0%</span>
+      </div>
+      <div class="accuracy-bar-container">
+        <div class="accuracy-bar" id="accuracyBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="note-section">
+      <div class="note-expected" id="noteExpected">C4</div>
+      <div style="font-size: 12px; color: #999; margin-top: 5px;">Nota esperada</div>
+      <div class="note-feedback" id="noteFeedback">Esperando audio...</div>
+    </div>
+
+    <div class="score-section">
+      <div>Puntuación</div>
+      <div class="score-value" id="totalScore">0</div>
+      <div class="score-stats">
+        <div class="score-stat">
+          <div>Notas Correctas</div>
+          <div class="score-stat-value" id="notesHit">0</div>
+        </div>
+        <div class="score-stat">
+          <div>Notas Perdidas</div>
+          <div class="score-stat-value" id="notesMissed">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-start" id="startBtn" onclick="startKaraoke()">Iniciar</button>
+      <button class="btn-stop" id="stopBtn" onclick="stopKaraoke()" style="display:none;">Detener</button>
+    </div>
+
+    <div class="console-log" id="consoleLog"></div>
   </div>
-  
-  <div class="button-group">
-    <button class="btn-start" id="startBtn" onclick="startKaraoke()">Iniciar</button>
-    <button class="btn-stop" id="stopBtn" onclick="stopKaraoke()" style="display:none;">Detener</button>
-  </div>
-  
-  <div class="console-log" id="consoleLog" style="display: none;"></div>
-</div>
 
-<script>
-// ============ LOGGING HELPER ============
-const consoleLog = document.getElementById('consoleLog');
+  <script>
+    const consoleLog = document.getElementById('consoleLog');
 
-console.log = function(...args) {
-  const msg = args.join(' ');
-  consoleLog.style.display = 'block';
-  consoleLog.innerHTML += msg + '<br>';
-  consoleLog.scrollTop = consoleLog.scrollHeight;
-};
+    function logMessage(message, isError = false) {
+      consoleLog.style.display = 'block';
+      const line = document.createElement('div');
+      line.innerHTML = isError
+        ? '<span style="color:red;">❌ ' + message + '</span>'
+        : message;
+      consoleLog.appendChild(line);
+      consoleLog.scrollTop = consoleLog.scrollHeight;
 
-console.error = function(...args) {
-  const msg = args.join(' ');
-  consoleLog.style.display = 'block';
-  consoleLog.innerHTML += '<span style="color:red;">❌ ' + msg + '</span><br>';
-  consoleLog.scrollTop = consoleLog.scrollHeight;
-};
-
-// ============ CLASES ============
-
-class AdvancedKaraokeDetector {
-  constructor(sampleRate = 44100) {
-    this.sampleRate = sampleRate;
-    this.previousFrequencies = [];
-    this.voiceType = 'unknown';
-    this.noiseThreshold = 0.02;
-    this.frequencyTrend = [];
-    
-    this.VOICE_RANGES = {
-      male: { min: 80, max: 180 },
-      female: { min: 160, max: 300 },
-      unknown: { min: 80, max: 300 },
-    };
-  }
-  
-  detectVoiceType(samples) {
-    const frequencies = [];
-    for (let i = 0; i < 10; i++) {
-      const freq = this.detectPitchInternal(samples);
-      if (freq) frequencies.push(freq);
-    }
-    
-    if (frequencies.length === 0) return 'unknown';
-    
-    const avgFreq = frequencies.reduce((a, b) => a + b, 0) / frequencies.length;
-    
-    if (avgFreq < 130) {
-      this.voiceType = 'male';
-    } else if (avgFreq > 160) {
-      this.voiceType = 'female';
-    } else {
-      this.voiceType = 'unknown';
-    }
-    
-    return this.voiceType;
-  }
-  
-  detectPitch(samples) {
-    if (!samples || samples.length < 2048) return null;
-    
-    const rms = this.calculateRMS(samples);
-    if (rms < this.noiseThreshold) return null;
-    
-    const bufferSize = Math.min(2048, samples.length);
-    const windowed = this.applyHannWindow(samples.slice(0, bufferSize));
-    
-    const frequency = this.yin(windowed);
-    if (!frequency) return null;
-    
-    const range = this.VOICE_RANGES[this.voiceType];
-    if (frequency < range.min || frequency > range.max) return null;
-    
-    return this.smoothFrequency(frequency);
-  }
-  
-  detectPitchInternal(samples) {
-    if (!samples || samples.length < 2048) return null;
-    
-    const rms = this.calculateRMS(samples);
-    if (rms < this.noiseThreshold) return null;
-    
-    const bufferSize = Math.min(2048, samples.length);
-    const windowed = this.applyHannWindow(samples.slice(0, bufferSize));
-    
-    return this.yin(windowed);
-  }
-  
-  calculateRMS(samples) {
-    let sum = 0;
-    for (let i = 0; i < samples.length; i++) {
-      sum += samples[i] * samples[i];
-    }
-    return Math.sqrt(sum / samples.length);
-  }
-  
-  applyHannWindow(buffer) {
-    const result = new Array(buffer.length);
-    const n = buffer.length;
-    
-    for (let i = 0; i < n; i++) {
-      const window = 0.5 * (1 - Math.cos(2 * Math.PI * i / (n - 1)));
-      result[i] = buffer[i] * window;
-    }
-    return result;
-  }
-  
-  yin(buffer) {
-    const bufferSize = buffer.length;
-    const maxPeriod = Math.floor(bufferSize / 2);
-    const minPeriod = Math.floor(this.sampleRate / 400);
-    
-    const yinBuffer = new Array(maxPeriod);
-    let cumulativeMeanNormalizedDifference = 0;
-    
-    yinBuffer[0] = 1;
-    
-    for (let lag = 1; lag < maxPeriod; lag++) {
-      let difference = 0;
-      
-      for (let i = 0; i < bufferSize - lag; i++) {
-        const delta = buffer[i] - buffer[i + lag];
-        difference += delta * delta;
-      }
-      
-      cumulativeMeanNormalizedDifference += difference;
-      
-      yinBuffer[lag] = difference === 0 ? 0 :
-        difference / (cumulativeMeanNormalizedDifference / lag);
-    }
-    
-    const threshold = 0.1;
-    let bestLag = -1;
-    
-    for (let lag = minPeriod; lag < maxPeriod; lag++) {
-      if (yinBuffer[lag] < threshold) {
-        bestLag = lag;
-        break;
+      if (isError) {
+        console.error(message);
+      } else {
+        console.log(message);
       }
     }
-    
-    if (bestLag === -1) return null;
-    
-    const shift = this.parabolicInterpolation(yinBuffer, bestLag);
-    const lag = bestLag + shift;
-    
-    return this.sampleRate / lag;
-  }
-  
-  parabolicInterpolation(array, index) {
-    if (index <= 0 || index >= array.length - 1) return 0;
-    
-    const y1 = array[index - 1];
-    const y2 = array[index];
-    const y3 = array[index + 1];
-    
-    const a = (y3 - 2*y2 + y1) / 2;
-    const b = (y3 - y1) / 2;
-    
-    if (a === 0) return 0;
-    return -b / (2*a);
-  }
-  
-  smoothFrequency(frequency) {
-    this.previousFrequencies.push(frequency);
-    this.frequencyTrend.push(frequency);
-    
-    if (this.previousFrequencies.length > 5) {
-      this.previousFrequencies.shift();
-    }
-    
-    if (this.frequencyTrend.length > 20) {
-      this.frequencyTrend.shift();
-    }
-    
-    const sum = this.previousFrequencies.reduce((a, b) => a + b, 0);
-    return sum / this.previousFrequencies.length;
-  }
-  
-  getTrend() {
-    if (this.frequencyTrend.length < 3) return 'stable';
-    
-    const recent = this.frequencyTrend.slice(-5);
-    const avgOld = recent.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
-    const avgNew = recent.slice(-2).reduce((a, b) => a + b, 0) / 2;
-    
-    const diff = avgNew - avgOld;
-    
-    if (Math.abs(diff) < 2) {
-      return 'stable';
-    } else if (diff > 0) {
-      return 'up';
-    } else {
-      return 'down';
-    }
-  }
-}
 
-const NOTES = {
-  'C3': 130.81,  'D3': 146.83,  'E3': 164.81,
-  'F3': 174.61,  'G3': 196.00,  'A3': 220.00,  'B3': 246.94,
-  'C4': 261.63,  'D4': 293.66,  'E4': 329.63,
-  'F4': 349.23,  'G4': 392.00,  'A4': 440.00,  'B4': 493.88,
-  'C5': 523.25,  'D5': 587.33,  'E5': 659.25,
-};
+    class AdvancedKaraokeDetector {
+      constructor(sampleRate = 44100) {
+        this.sampleRate = sampleRate;
+        this.previousFrequencies = [];
+        this.frequencyTrend = [];
+        this.voiceType = 'unknown';
+        this.noiseThreshold = 0.01;
 
-class KaraokeScorer {
-  constructor(detector) {
-    this.detector = detector;
-    this.totalScore = 0;
-    this.notesHit = 0;
-    this.notesMissed = 0;
-  }
-  
-  evaluateNote(samples, expectedNote) {
-    const detectedFreq = this.detector.detectPitch(samples);
-    
-    if (!detectedFreq) {
-      this.notesMissed++;
-      return {
-        detected: null,
-        expected: expectedNote,
-        accuracy: 0,
-        isCorrect: false,
-        trend: 'silent',
-      };
-    }
-    
-    const expectedFreq = NOTES[expectedNote];
-    const accuracy = this.compareFrequencies(detectedFreq, expectedFreq);
-    
-    const isCorrect = accuracy > 0.85;
-    const trend = this.detector.getTrend();
-    
-    if (isCorrect) {
-      this.notesHit++;
-      this.totalScore += Math.round(accuracy * 100);
-    } else {
-      this.notesMissed++;
-    }
-    
-    return {
-      detected: detectedFreq.toFixed(1),
-      expected: expectedFreq.toFixed(1),
-      accuracy: (accuracy * 100).toFixed(0),
-      isCorrect,
-      note: expectedNote,
-      trend,
-    };
-  }
-  
-  compareFrequencies(freq1, freq2) {
-    if (!freq1 || !freq2) return 0;
-    
-    const cents = 1200 * Math.log2(freq1 / freq2);
-    const accuracy = Math.max(0, 1 - Math.abs(cents) / 50);
-    
-    return accuracy;
-  }
-}
-
-// ============ VARIABLES GLOBALES ============
-
-let detector = null;
-let scorer = null;
-let audioContext = null;
-let isRunning = false;
-let mediaRecorder = null;
-let audioChunks = [];
-
-let songNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-let currentNoteIndex = 0;
-
-// ============ FUNCIONES ============
-
-async function startKaraoke() {
-  try {
-    console.log('Iniciando karaoke...');
-    document.getElementById('startBtn').disabled = true;
-    
-    // Obtener micrófono
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log('Micrófono permitido');
-    
-    // Crear contexto
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    audioContext = new AudioContextClass();
-    
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-    
-    // Inicializar
-    detector = new AdvancedKaraokeDetector(audioContext.sampleRate);
-    scorer = new KaraokeScorer(detector);
-    
-    console.log('Detector listo');
-    
-    // Crear analyser
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 4096;
-    
-    // ⭐ ENVOLVER EN TRY-CATCH
-    let source = null;
-    try {
-      source = audioContext.createMediaStreamAudioSource(stream);
-      source.connect(analyser);
-      console.log('Source conectado');
-    } catch (sourceError) {
-      console.log('createMediaStreamAudioSource no disponible, continuando...');
-      // Continuar sin source - el analyser aún funciona con frecuencias
-    }
-    
-    analyser.connect(audioContext.destination);
-    
-    console.log('Conectado - Detectando sonido...');
-    
-    // Loop de detección
-    const data = new Uint8Array(analyser.frequencyBinCount);
-    let voiceDetectCount = 0;
-    let detectionCount = 0;
-    
-    const detect = () => {
-      if (!isRunning) return;
-      
-      analyser.getByteFrequencyData(data);
-      
-      const samples = new Float32Array(data.length);
-      for (let i = 0; i < data.length; i++) {
-        samples[i] = (data[i] - 128) / 128;
+        this.VOICE_RANGES = {
+          male: { min: 80, max: 350 },
+          female: { min: 120, max: 600 },
+          unknown: { min: 80, max: 600 }
+        };
       }
-      
-      // Detectar tipo de voz
-      if (voiceDetectCount < 10) {
-        detector.detectVoiceType(samples);
-        voiceDetectCount++;
-        updateVoiceTypeUI();
-      }
-      
-      // Detectar pitch
-      detectionCount++;
-      if (detectionCount % 2 === 0) {
-        const freq = detector.detectPitch(samples);
-        const expectedNote = songNotes[currentNoteIndex % songNotes.length];
-        
-        if (freq) {
-          const result = scorer.evaluateNote(samples, expectedNote);
-          updateUI(result);
+
+      detectVoiceType(frequency) {
+        if (!frequency) return 'unknown';
+
+        if (frequency < 165) {
+          this.voiceType = 'male';
+        } else if (frequency >= 165) {
+          this.voiceType = 'female';
         } else {
-          updateUINoDetection();
+          this.voiceType = 'unknown';
         }
+
+        return this.voiceType;
       }
-      
-      requestAnimationFrame(detect);
+
+      detectPitch(samples) {
+        if (!samples || samples.length < 1024) return null;
+
+        const rms = this.calculateRMS(samples);
+        if (rms < this.noiseThreshold) return null;
+
+        const windowed = this.applyHannWindow(samples);
+        const frequency = this.yin(windowed);
+
+        if (!frequency) return null;
+
+        const range = this.VOICE_RANGES[this.voiceType] || this.VOICE_RANGES.unknown;
+        if (frequency < range.min || frequency > range.max) return null;
+
+        return this.smoothFrequency(frequency);
+      }
+
+      calculateRMS(samples) {
+        let sum = 0;
+        for (let i = 0; i < samples.length; i++) {
+          sum += samples[i] * samples[i];
+        }
+        return Math.sqrt(sum / samples.length);
+      }
+
+      applyHannWindow(buffer) {
+        const result = new Float32Array(buffer.length);
+        const n = buffer.length;
+
+        for (let i = 0; i < n; i++) {
+          const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+          result[i] = buffer[i] * window;
+        }
+        return result;
+      }
+
+      yin(buffer) {
+        const bufferSize = buffer.length;
+        const maxPeriod = Math.floor(bufferSize / 2);
+        const minPeriod = Math.floor(this.sampleRate / 600);
+        const maxValidPeriod = Math.floor(this.sampleRate / 80);
+
+        const yinBuffer = new Float32Array(maxPeriod);
+        yinBuffer[0] = 1;
+
+        let runningSum = 0;
+
+        for (let tau = 1; tau < maxPeriod; tau++) {
+          let difference = 0;
+
+          for (let i = 0; i < bufferSize - tau; i++) {
+            const delta = buffer[i] - buffer[i + tau];
+            difference += delta * delta;
+          }
+
+          runningSum += difference;
+          yinBuffer[tau] = runningSum === 0 ? 1 : difference / (runningSum / tau);
+        }
+
+        const threshold = 0.15;
+        let tauEstimate = -1;
+
+        for (let tau = minPeriod; tau < Math.min(maxPeriod, maxValidPeriod); tau++) {
+          if (yinBuffer[tau] < threshold) {
+            while (tau + 1 < maxPeriod && yinBuffer[tau + 1] < yinBuffer[tau]) {
+              tau++;
+            }
+            tauEstimate = tau;
+            break;
+          }
+        }
+
+        if (tauEstimate === -1) return null;
+
+        const betterTau = tauEstimate + this.parabolicInterpolation(yinBuffer, tauEstimate);
+        if (betterTau <= 0) return null;
+
+        return this.sampleRate / betterTau;
+      }
+
+      parabolicInterpolation(array, index) {
+        if (index <= 0 || index >= array.length - 1) return 0;
+
+        const x0 = array[index - 1];
+        const x1 = array[index];
+        const x2 = array[index + 1];
+
+        const denominator = (2 * x1) - x2 - x0;
+        if (denominator === 0) return 0;
+
+        return 0.5 * (x2 - x0) / denominator;
+      }
+
+      smoothFrequency(frequency) {
+        this.previousFrequencies.push(frequency);
+        this.frequencyTrend.push(frequency);
+
+        if (this.previousFrequencies.length > 5) this.previousFrequencies.shift();
+        if (this.frequencyTrend.length > 20) this.frequencyTrend.shift();
+
+        const sum = this.previousFrequencies.reduce((a, b) => a + b, 0);
+        return sum / this.previousFrequencies.length;
+      }
+
+      getTrend() {
+        if (this.frequencyTrend.length < 4) return 'stable';
+
+        const recent = this.frequencyTrend.slice(-4);
+        const avgOld = (recent[0] + recent[1]) / 2;
+        const avgNew = (recent[2] + recent[3]) / 2;
+        const diff = avgNew - avgOld;
+
+        if (Math.abs(diff) < 2) return 'stable';
+        return diff > 0 ? 'up' : 'down';
+      }
+    }
+
+    const NOTES = {
+      C3: 130.81, D3: 146.83, E3: 164.81,
+      F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+      C4: 261.63, D4: 293.66, E4: 329.63,
+      F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+      C5: 523.25, D5: 587.33, E5: 659.25
     };
-    
-    isRunning = true;
-    detect();
-    
-    document.getElementById('startBtn').style.display = 'none';
-    document.getElementById('stopBtn').style.display = 'block';
-    
-    console.log('KARAOKE INICIADO!');
-    
-  } catch (error) {
-    console.error('Error: ' + error.message);
-    // NO mostrar alert, solo log
-    document.getElementById('startBtn').disabled = false;
-  }
-}
 
-function stopKaraoke() {
-  isRunning = false;
-  
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-  }
-  
-  document.getElementById('startBtn').style.display = 'block';
-  document.getElementById('startBtn').disabled = false;
-  document.getElementById('stopBtn').style.display = 'none';
-  console.log('Karaoke detenido');
-}
+    class KaraokeScorer {
+      constructor(detector) {
+        this.detector = detector;
+        this.totalScore = 0;
+        this.notesHit = 0;
+        this.notesMissed = 0;
+      }
 
-function updateUI(result) {
-  document.getElementById('currentFreq').textContent = result.detected ?
-    result.detected + ' Hz' : '-- Hz';
-  document.getElementById('expectedFreq').textContent = result.expected + ' Hz';
-  document.getElementById('noteExpected').textContent = result.note;
-  
-  const accuracy = parseInt(result.accuracy);
-  document.getElementById('accuracyText').textContent = result.accuracy + '%';
-  
-  const accuracyBar = document.getElementById('accuracyBar');
-  accuracyBar.style.width = accuracy + '%';
-  accuracyBar.textContent = accuracy > 10 ? accuracy + '%' : '';
-  
-  const feedback = document.getElementById('noteFeedback');
-  if (result.isCorrect) {
-    feedback.className = 'note-feedback correct';
-    feedback.textContent = '✅ ¡Nota Correcta!';
-  } else if (result.detected) {
-    feedback.className = 'note-feedback incorrect';
-    feedback.textContent = '❌ Nota Incorrecta';
-  }
-  
-  updateTrendIndicator(result.trend);
-  
-  document.getElementById('totalScore').textContent = scorer.totalScore;
-  document.getElementById('notesHit').textContent = scorer.notesHit;
-  document.getElementById('notesMissed').textContent = scorer.notesMissed;
-}
+      evaluateDetectedFrequency(detectedFreq, expectedNote) {
+        const expectedFreq = NOTES[expectedNote];
+        if (!detectedFreq || !expectedFreq) {
+          this.notesMissed++;
+          return {
+            detected: null,
+            expected: expectedFreq ? expectedFreq.toFixed(1) : '--',
+            accuracy: 0,
+            isCorrect: false,
+            note: expectedNote,
+            trend: 'silent'
+          };
+        }
 
-function updateUINoDetection() {
-  document.getElementById('currentFreq').textContent = '-- Hz';
-  document.getElementById('noteFeedback').textContent = '🔇 Sin sonido';
-  document.getElementById('noteFeedback').className = 'note-feedback';
-  
-  const accuracyBar = document.getElementById('accuracyBar');
-  accuracyBar.style.width = '0%';
-  accuracyBar.textContent = '';
-}
+        const accuracy = this.compareFrequencies(detectedFreq, expectedFreq);
+        const isCorrect = accuracy >= 0.85;
+        const trend = this.detector.getTrend();
 
-function updateTrendIndicator(trend) {
-  const arrow = document.getElementById('trendArrow');
-  
-  if (trend === 'up') {
-    arrow.textContent = '📈';
-  } else if (trend === 'down') {
-    arrow.textContent = '📉';
-  } else {
-    arrow.textContent = '➡️';
-  }
-}
+        if (isCorrect) {
+          this.notesHit++;
+          this.totalScore += Math.round(accuracy * 100);
+        } else {
+          this.notesMissed++;
+        }
 
-function updateVoiceTypeUI() {
-  const voiceTypeEl = document.getElementById('voiceType');
-  const voiceType = detector.voiceType;
-  
-  if (voiceType !== 'unknown') {
-    voiceTypeEl.className = 'voice-type detected';
-    voiceTypeEl.textContent = voiceType === 'male' ? '🎙️ Voz de Hombre' : '🎤 Voz de Mujer';
-  }
-}
+        return {
+          detected: detectedFreq.toFixed(1),
+          expected: expectedFreq.toFixed(1),
+          accuracy: Math.round(accuracy * 100),
+          isCorrect,
+          note: expectedNote,
+          trend
+        };
+      }
 
-console.log('Script cargado correctamente');
-</script>
+      compareFrequencies(freq1, freq2) {
+        if (!freq1 || !freq2) return 0;
+        const cents = 1200 * Math.log2(freq1 / freq2);
+        return Math.max(0, 1 - Math.abs(cents) / 50);
+      }
+    }
+
+    let detector = null;
+    let scorer = null;
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let source = null;
+    let isRunning = false;
+    let animationId = null;
+
+    let songNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+    let currentNoteIndex = 0;
+    let lastNoteChange = 0;
+    const NOTE_DURATION_MS = 2000;
+
+    async function startKaraoke() {
+      try {
+        logMessage('Iniciando karaoke...');
+        document.getElementById('startBtn').disabled = true;
+
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+
+        logMessage('Micrófono permitido');
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        detector = new AdvancedKaraokeDetector(audioContext.sampleRate);
+        scorer = new KaraokeScorer(detector);
+
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0.1;
+
+        source = audioContext.createMediaStreamAudioSource(micStream);
+        source.connect(analyser);
+
+        isRunning = true;
+        lastNoteChange = performance.now();
+
+        const timeData = new Float32Array(analyser.fftSize);
+
+        const detect = (timestamp) => {
+          if (!isRunning) return;
+
+          analyser.getFloatTimeDomainData(timeData);
+
+          const freq = detector.detectPitch(timeData);
+
+          if (freq) {
+            detector.detectVoiceType(freq);
+            updateVoiceTypeUI();
+          }
+
+          if (timestamp - lastNoteChange >= NOTE_DURATION_MS) {
+            currentNoteIndex = (currentNoteIndex + 1) % songNotes.length;
+            lastNoteChange = timestamp;
+          }
+
+          const expectedNote = songNotes[currentNoteIndex];
+
+          if (freq) {
+            const result = scorer.evaluateDetectedFrequency(freq, expectedNote);
+            updateUI(result);
+          } else {
+            updateUINoDetection(expectedNote);
+          }
+
+          animationId = requestAnimationFrame(detect);
+        };
+
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'block';
+
+        logMessage('KARAOKE INICIADO');
+        animationId = requestAnimationFrame(detect);
+
+      } catch (error) {
+        logMessage('Error: ' + error.message, true);
+        document.getElementById('startBtn').disabled = false;
+      }
+    }
+
+    function stopKaraoke() {
+      isRunning = false;
+
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      if (source) {
+        try { source.disconnect(); } catch {}
+        source = null;
+      }
+
+      if (analyser) {
+        try { analyser.disconnect(); } catch {}
+        analyser = null;
+      }
+
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+
+      document.getElementById('startBtn').style.display = 'block';
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').style.display = 'none';
+
+      logMessage('Karaoke detenido');
+    }
+
+    function updateUI(result) {
+      document.getElementById('currentFreq').textContent = result.detected ? result.detected + ' Hz' : '-- Hz';
+      document.getElementById('expectedFreq').textContent = result.expected + ' Hz';
+      document.getElementById('noteExpected').textContent = result.note;
+
+      const accuracy = Number(result.accuracy) || 0;
+      document.getElementById('accuracyText').textContent = accuracy + '%';
+
+      const accuracyBar = document.getElementById('accuracyBar');
+      accuracyBar.style.width = accuracy + '%';
+      accuracyBar.textContent = accuracy > 10 ? accuracy + '%' : '';
+
+      const feedback = document.getElementById('noteFeedback');
+      if (result.isCorrect) {
+        feedback.className = 'note-feedback correct';
+        feedback.textContent = '✅ ¡Nota correcta!';
+      } else {
+        feedback.className = 'note-feedback incorrect';
+        feedback.textContent = '❌ Nota incorrecta';
+      }
+
+      updateTrendIndicator(result.trend);
+
+      document.getElementById('totalScore').textContent = scorer.totalScore;
+      document.getElementById('notesHit').textContent = scorer.notesHit;
+      document.getElementById('notesMissed').textContent = scorer.notesMissed;
+    }
+
+    function updateUINoDetection(expectedNote) {
+      document.getElementById('currentFreq').textContent = '-- Hz';
+      document.getElementById('expectedFreq').textContent = NOTES[expectedNote].toFixed(1) + ' Hz';
+      document.getElementById('noteExpected').textContent = expectedNote;
+      document.getElementById('accuracyText').textContent = '0%';
+
+      const feedback = document.getElementById('noteFeedback');
+      feedback.textContent = '🔇 Sin sonido';
+      feedback.className = 'note-feedback';
+
+      const accuracyBar = document.getElementById('accuracyBar');
+      accuracyBar.style.width = '0%';
+      accuracyBar.textContent = '';
+
+      updateTrendIndicator('stable');
+    }
+
+    function updateTrendIndicator(trend) {
+      const arrow = document.getElementById('trendArrow');
+
+      if (trend === 'up') {
+        arrow.textContent = '📈';
+      } else if (trend === 'down') {
+        arrow.textContent = '📉';
+      } else {
+        arrow.textContent = '➡️';
+      }
+    }
+
+    function updateVoiceTypeUI() {
+      const voiceTypeEl = document.getElementById('voiceType');
+      const voiceType = detector.voiceType;
+
+      if (voiceType === 'male') {
+        voiceTypeEl.className = 'voice-type detected';
+        voiceTypeEl.textContent = '🎙️ Voz grave';
+      } else if (voiceType === 'female') {
+        voiceTypeEl.className = 'voice-type detected';
+        voiceTypeEl.textContent = '🎤 Voz aguda';
+      } else {
+        voiceTypeEl.className = 'voice-type';
+        voiceTypeEl.textContent = 'Detectando voz...';
+      }
+    }
+
+    logMessage('Script cargado correctamente');
+  </script>
 </body>
 </html>
