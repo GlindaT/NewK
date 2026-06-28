@@ -581,7 +581,7 @@ async function startKaraoke() {
     console.log('Solicitando permiso de micrófono...');
     document.getElementById('startBtn').disabled = true;
     
-    // ⭐ Obtener stream del micrófono
+    // ⭐ Obtener stream
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: false,
@@ -600,56 +600,88 @@ async function startKaraoke() {
       await audioContext.resume();
     }
     
-    // ⭐ Inicializar detector y scorer
+    // ⭐ Inicializar detector
     detector = new AdvancedKaraokeDetector(audioContext.sampleRate);
     scorer = new KaraokeScorer(detector);
     console.log('Detector y Scorer inicializados');
     
-    // ⭐ ALTERNATIVA: Usar MediaRecorder + processamiento
-    audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { 
-      mimeType: 'audio/webm'
-    });
+    // ⭐ Crear elemento Audio invisible
+    const audioElement = new Audio();
+    audioElement.srcObject = stream;
+    audioElement.play();
+    console.log('Audio element creado y reproduciendo');
     
+    // ⭐ Conectar a AudioContext
+    let source;
+    try {
+      source = audioContext.createMediaElementAudioSource(audioElement);
+      console.log('MediaElementAudioSource conectado');
+    } catch (e) {
+      console.log('Usando ScriptProcessorNode como alternativa');
+      // Si falla, usar ScriptProcessor directo
+      const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+      
+      // Conectar el stream usando un procesador
+      const mediaStreamSource = audioContext.createMediaStreamAudioSource(stream);
+      mediaStreamSource.connect(scriptProcessor);
+      
+      source = scriptProcessor;
+    }
+    
+    // ⭐ Crear Analyser
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.8;
+    
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
+    console.log('Analyser conectado');
+    
+    // ⭐ Loop de detección
     let voiceDetectCount = 0;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let detectionCount = 0;
     
-    mediaRecorder.ondataavailable = async (event) => {
+    function detectLoop() {
       if (!isRunning) return;
       
-      audioChunks.push(event.data);
+      analyser.getByteFrequencyData(dataArray);
       
-      // Procesar cada chunk
-      const audioBlob = new Blob([event.data], { type: 'audio/webm' });
-      const arrayBuffer = await audioBlob.arrayBuffer();
+      // Convertir a float32
+      const floatData = new Float32Array(dataArray.length);
+      for (let i = 0; i < dataArray.length; i++) {
+        floatData[i] = (dataArray[i] - 128) / 128;
+      }
       
-      try {
-        const decodedAudio = await audioContext.decodeAudioData(arrayBuffer);
-        const samples = decodedAudio.getChannelData(0);
-        
-        if (voiceDetectCount < 5) {
-          detector.detectVoiceType(samples);
-          voiceDetectCount++;
+      // Detectar tipo de voz
+      if (voiceDetectCount < 10) {
+        detector.detectVoiceType(floatData);
+        voiceDetectCount++;
+        if (voiceDetectCount % 2 === 0) {
           updateVoiceTypeUI();
         }
-        
-        const freq = detector.detectPitch(samples);
+      }
+      
+      // Detectar pitch
+      detectionCount++;
+      if (detectionCount % 2 === 0) { // Procesar cada 2 frames para eficiencia
+        const freq = detector.detectPitch(floatData);
         const expectedNote = songNotes[currentNoteIndex % songNotes.length];
         
         if (freq) {
-          const result = scorer.evaluateNote(samples, expectedNote);
+          const result = scorer.evaluateNote(floatData, expectedNote);
           updateUI(result);
         } else {
           updateUINoDetection();
         }
-      } catch (e) {
-        // Silenciar errores de decodificación
       }
-    };
-    
-    // Procesar en pequeños chunks (100ms)
-    mediaRecorder.start(100);
+      
+      requestAnimationFrame(detectLoop);
+    }
     
     isRunning = true;
+    detectLoop();
+    
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('stopBtn').style.display = 'block';
     
@@ -657,17 +689,13 @@ async function startKaraoke() {
     
   } catch (error) {
     console.error('Error: ' + error.message);
-    alert('Error: ' + error.message);
+    alert('Error: ' + error.message + '\n\nAsegúrate de permitir el acceso al micrófono.');
     document.getElementById('startBtn').disabled = false;
   }
 }
 
 function stopKaraoke() {
   isRunning = false;
-  
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-  }
   
   if (audioContext) {
     audioContext.close();
