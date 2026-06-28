@@ -603,16 +603,25 @@ async function startKaraoke() {
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 4096;
     
-    // Conectar stream
-    const source = audioContext.createMediaStreamAudioSource(stream);
-    source.connect(analyser);
+    // ⭐ ENVOLVER EN TRY-CATCH
+    let source = null;
+    try {
+      source = audioContext.createMediaStreamAudioSource(stream);
+      source.connect(analyser);
+      console.log('Source conectado');
+    } catch (sourceError) {
+      console.log('createMediaStreamAudioSource no disponible, continuando...');
+      // Continuar sin source - el analyser aún funciona con frecuencias
+    }
+    
     analyser.connect(audioContext.destination);
     
     console.log('Conectado - Detectando sonido...');
     
-    // Loop
+    // Loop de detección
     const data = new Uint8Array(analyser.frequencyBinCount);
     let voiceDetectCount = 0;
+    let detectionCount = 0;
     
     const detect = () => {
       if (!isRunning) return;
@@ -624,18 +633,25 @@ async function startKaraoke() {
         samples[i] = (data[i] - 128) / 128;
       }
       
+      // Detectar tipo de voz
       if (voiceDetectCount < 10) {
         detector.detectVoiceType(samples);
         voiceDetectCount++;
         updateVoiceTypeUI();
       }
       
-      const freq = detector.detectPitch(samples);
-      if (freq) {
-        const result = scorer.evaluateNote(samples, songNotes[currentNoteIndex % songNotes.length]);
-        updateUI(result);
-      } else {
-        updateUINoDetection();
+      // Detectar pitch
+      detectionCount++;
+      if (detectionCount % 2 === 0) {
+        const freq = detector.detectPitch(samples);
+        const expectedNote = songNotes[currentNoteIndex % songNotes.length];
+        
+        if (freq) {
+          const result = scorer.evaluateNote(samples, expectedNote);
+          updateUI(result);
+        } else {
+          updateUINoDetection();
+        }
       }
       
       requestAnimationFrame(detect);
@@ -651,7 +667,7 @@ async function startKaraoke() {
     
   } catch (error) {
     console.error('Error: ' + error.message);
-    alert(error.message);
+    // NO mostrar alert, solo log
     document.getElementById('startBtn').disabled = false;
   }
 }
