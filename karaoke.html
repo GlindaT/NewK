@@ -608,25 +608,12 @@ async function startKaraoke() {
     // ⭐ Crear elemento Audio invisible
     const audioElement = new Audio();
     audioElement.srcObject = stream;
-    audioElement.play();
-    console.log('Audio element creado y reproduciendo');
+    audioElement.play().catch(e => console.log('Audio play error (normal)'));
+    console.log('Audio element creado');
     
-    // ⭐ Conectar a AudioContext
-    let source;
-    try {
-      source = audioContext.createMediaElementAudioSource(audioElement);
-      console.log('MediaElementAudioSource conectado');
-    } catch (e) {
-      console.log('Usando ScriptProcessorNode como alternativa');
-      // Si falla, usar ScriptProcessor directo
-      const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
-      
-      // Conectar el stream usando un procesador
-      const mediaStreamSource = audioContext.createMediaStreamAudioSource(stream);
-      mediaStreamSource.connect(scriptProcessor);
-      
-      source = scriptProcessor;
-    }
+    // ⭐ Conectar a AudioContext (ÚNICA forma)
+    const source = audioContext.createMediaElementAudioSource(audioElement);
+    console.log('MediaElementAudioSource conectado');
     
     // ⭐ Crear Analyser
     const analyser = audioContext.createAnalyser();
@@ -635,7 +622,7 @@ async function startKaraoke() {
     
     source.connect(analyser);
     analyser.connect(audioContext.destination);
-    console.log('Analyser conectado');
+    console.log('Analyser conectado - Listo para detectar!');
     
     // ⭐ Loop de detección
     let voiceDetectCount = 0;
@@ -653,7 +640,7 @@ async function startKaraoke() {
         floatData[i] = (dataArray[i] - 128) / 128;
       }
       
-      // Detectar tipo de voz
+      // Detectar tipo de voz (primeras 10 iteraciones)
       if (voiceDetectCount < 10) {
         detector.detectVoiceType(floatData);
         voiceDetectCount++;
@@ -662,9 +649,9 @@ async function startKaraoke() {
         }
       }
       
-      // Detectar pitch
+      // Detectar pitch (cada 2 frames)
       detectionCount++;
-      if (detectionCount % 2 === 0) { // Procesar cada 2 frames para eficiencia
+      if (detectionCount % 2 === 0) {
         const freq = detector.detectPitch(floatData);
         const expectedNote = songNotes[currentNoteIndex % songNotes.length];
         
@@ -685,11 +672,11 @@ async function startKaraoke() {
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('stopBtn').style.display = 'block';
     
-    console.log('KARAOKE INICIADO - Empieza a cantar!');
+    console.log('KARAOKE INICIADO - ¡Empieza a cantar!');
     
   } catch (error) {
     console.error('Error: ' + error.message);
-    alert('Error: ' + error.message + '\n\nAsegúrate de permitir el acceso al micrófono.');
+    alert('Error: ' + error.message);
     document.getElementById('startBtn').disabled = false;
   }
 }
