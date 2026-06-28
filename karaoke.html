@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎤 Karaoke Detector</title>
+  <title>🎤 Karaoke Detector Corregido</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -23,7 +23,7 @@
       border-radius: 20px;
       padding: 40px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-width: 600px;
+      max-width: 650px;
       width: 100%;
     }
 
@@ -116,7 +116,7 @@
     .accuracy-bar {
       height: 100%;
       background: linear-gradient(90deg, #f44336, #ff9800, #4caf50);
-      transition: width 0.3s ease;
+      transition: width 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -144,6 +144,8 @@
       margin-top: 10px;
       border-radius: 8px;
       font-weight: 600;
+      background: #eceff1;
+      color: #37474f;
     }
 
     .note-feedback.correct {
@@ -215,7 +217,6 @@
     .btn-start:hover:not(:disabled) {
       background: #45a049;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
     }
 
     .btn-start:disabled {
@@ -240,7 +241,7 @@
       border-radius: 8px;
       font-size: 12px;
       font-family: monospace;
-      max-height: 100px;
+      max-height: 140px;
       overflow-y: auto;
       color: #333;
       display: none;
@@ -259,7 +260,7 @@
       <div class="expected-frequency">Esperada: <span id="expectedFreq">-- Hz</span></div>
       <div class="trend-indicator">
         <span style="font-weight: 600;">Movimiento:</span>
-        <span class="trend-arrow" id="trendArrow">→</span>
+        <span class="trend-arrow" id="trendArrow">➡️</span>
       </div>
     </div>
 
@@ -288,66 +289,58 @@
           <div class="score-stat-value" id="notesHit">0</div>
         </div>
         <div class="score-stat">
-          <div>Notas Perdidas</div>
+          <div>Notas Falladas</div>
           <div class="score-stat-value" id="notesMissed">0</div>
         </div>
       </div>
     </div>
 
     <div class="button-group">
-      <button class="btn-start" id="startBtn" onclick="startKaraoke()">Iniciar</button>
-      <button class="btn-stop" id="stopBtn" onclick="stopKaraoke()" style="display:none;">Detener</button>
+      <button class="btn-start" id="startBtn">Iniciar</button>
+      <button class="btn-stop" id="stopBtn" style="display:none;">Detener</button>
     </div>
 
     <div class="console-log" id="consoleLog"></div>
   </div>
 
   <script>
-    const consoleLog = document.getElementById('consoleLog');
+    const NOTES = {
+      C3: 130.81, D3: 146.83, E3: 164.81,
+      F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+      C4: 261.63, D4: 293.66, E4: 329.63,
+      F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+      C5: 523.25, D5: 587.33, E5: 659.25
+    };
 
-    function logMessage(message, isError = false) {
-      consoleLog.style.display = 'block';
-      const line = document.createElement('div');
-      line.innerHTML = isError
-        ? '<span style="color:red;">❌ ' + message + '</span>'
-        : message;
-      consoleLog.appendChild(line);
-      consoleLog.scrollTop = consoleLog.scrollHeight;
+    class Logger {
+      constructor(element) {
+        this.element = element;
+      }
 
-      if (isError) {
-        console.error(message);
-      } else {
-        console.log(message);
+      log(message, isError = false) {
+        this.element.style.display = 'block';
+        const line = document.createElement('div');
+        line.innerHTML = isError
+          ? `<span style="color:red;">❌ ${message}</span>`
+          : `ℹ️ ${message}`;
+        this.element.appendChild(line);
+        this.element.scrollTop = this.element.scrollHeight;
+
+        if (isError) console.error(message);
+        else console.log(message);
+      }
+
+      clear() {
+        this.element.innerHTML = '';
       }
     }
 
-    class AdvancedKaraokeDetector {
-      constructor(sampleRate = 44100) {
+    class PitchDetector {
+      constructor(sampleRate) {
         this.sampleRate = sampleRate;
+        this.noiseThreshold = 0.01;
         this.previousFrequencies = [];
         this.frequencyTrend = [];
-        this.voiceType = 'unknown';
-        this.noiseThreshold = 0.01;
-
-        this.VOICE_RANGES = {
-          male: { min: 80, max: 350 },
-          female: { min: 120, max: 600 },
-          unknown: { min: 80, max: 600 }
-        };
-      }
-
-      detectVoiceType(frequency) {
-        if (!frequency) return 'unknown';
-
-        if (frequency < 165) {
-          this.voiceType = 'male';
-        } else if (frequency >= 165) {
-          this.voiceType = 'female';
-        } else {
-          this.voiceType = 'unknown';
-        }
-
-        return this.voiceType;
       }
 
       detectPitch(samples) {
@@ -360,9 +353,7 @@
         const frequency = this.yin(windowed);
 
         if (!frequency) return null;
-
-        const range = this.VOICE_RANGES[this.voiceType] || this.VOICE_RANGES.unknown;
-        if (frequency < range.min || frequency > range.max) return null;
+        if (frequency < 80 || frequency > 700) return null;
 
         return this.smoothFrequency(frequency);
       }
@@ -380,8 +371,8 @@
         const n = buffer.length;
 
         for (let i = 0; i < n; i++) {
-          const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
-          result[i] = buffer[i] * window;
+          const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+          result[i] = buffer[i] * w;
         }
         return result;
       }
@@ -389,7 +380,7 @@
       yin(buffer) {
         const bufferSize = buffer.length;
         const maxPeriod = Math.floor(bufferSize / 2);
-        const minPeriod = Math.floor(this.sampleRate / 600);
+        const minPeriod = Math.floor(this.sampleRate / 700);
         const maxValidPeriod = Math.floor(this.sampleRate / 80);
 
         const yinBuffer = new Float32Array(maxPeriod);
@@ -430,12 +421,12 @@
         return this.sampleRate / betterTau;
       }
 
-      parabolicInterpolation(array, index) {
-        if (index <= 0 || index >= array.length - 1) return 0;
+      parabolicInterpolation(buffer, index) {
+        if (index <= 0 || index >= buffer.length - 1) return 0;
 
-        const x0 = array[index - 1];
-        const x1 = array[index];
-        const x2 = array[index + 1];
+        const x0 = buffer[index - 1];
+        const x1 = buffer[index];
+        const x2 = buffer[index + 1];
 
         const denominator = (2 * x1) - x2 - x0;
         if (denominator === 0) return 0;
@@ -448,103 +439,95 @@
         this.frequencyTrend.push(frequency);
 
         if (this.previousFrequencies.length > 5) this.previousFrequencies.shift();
-        if (this.frequencyTrend.length > 20) this.frequencyTrend.shift();
+        if (this.frequencyTrend.length > 12) this.frequencyTrend.shift();
 
-        const sum = this.previousFrequencies.reduce((a, b) => a + b, 0);
-        return sum / this.previousFrequencies.length;
+        return this.previousFrequencies.reduce((a, b) => a + b, 0) / this.previousFrequencies.length;
       }
 
       getTrend() {
         if (this.frequencyTrend.length < 4) return 'stable';
 
         const recent = this.frequencyTrend.slice(-4);
-        const avgOld = (recent[0] + recent[1]) / 2;
-        const avgNew = (recent[2] + recent[3]) / 2;
-        const diff = avgNew - avgOld;
+        const oldAvg = (recent[0] + recent[1]) / 2;
+        const newAvg = (recent[2] + recent[3]) / 2;
+        const diff = newAvg - oldAvg;
 
         if (Math.abs(diff) < 2) return 'stable';
         return diff > 0 ? 'up' : 'down';
       }
+
+      detectVoiceType(frequency) {
+        if (!frequency) return 'unknown';
+        return frequency < 165 ? 'grave' : 'aguda';
+      }
     }
 
-    const NOTES = {
-      C3: 130.81, D3: 146.83, E3: 164.81,
-      F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
-      C4: 261.63, D4: 293.66, E4: 329.63,
-      F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
-      C5: 523.25, D5: 587.33, E5: 659.25
-    };
-
-    class KaraokeScorer {
-      constructor(detector) {
-        this.detector = detector;
+    class ScoreEngine {
+      constructor() {
         this.totalScore = 0;
         this.notesHit = 0;
         this.notesMissed = 0;
       }
 
-      evaluateDetectedFrequency(detectedFreq, expectedNote) {
+      evaluate(detectedFreq, expectedNote) {
         const expectedFreq = NOTES[expectedNote];
         if (!detectedFreq || !expectedFreq) {
-          this.notesMissed++;
           return {
             detected: null,
             expected: expectedFreq ? expectedFreq.toFixed(1) : '--',
             accuracy: 0,
-            isCorrect: false,
-            note: expectedNote,
-            trend: 'silent'
+            isCorrect: false
           };
         }
 
-        const accuracy = this.compareFrequencies(detectedFreq, expectedFreq);
+        const cents = 1200 * Math.log2(detectedFreq / expectedFreq);
+        const accuracy = Math.max(0, 1 - Math.abs(cents) / 50);
         const isCorrect = accuracy >= 0.85;
-        const trend = this.detector.getTrend();
-
-        if (isCorrect) {
-          this.notesHit++;
-          this.totalScore += Math.round(accuracy * 100);
-        } else {
-          this.notesMissed++;
-        }
 
         return {
           detected: detectedFreq.toFixed(1),
           expected: expectedFreq.toFixed(1),
           accuracy: Math.round(accuracy * 100),
           isCorrect,
-          note: expectedNote,
-          trend
+          cents
         };
       }
 
-      compareFrequencies(freq1, freq2) {
-        if (!freq1 || !freq2) return 0;
-        const cents = 1200 * Math.log2(freq1 / freq2);
-        return Math.max(0, 1 - Math.abs(cents) / 50);
+      registerResult(result) {
+        if (result.isCorrect) {
+          this.notesHit++;
+          this.totalScore += result.accuracy;
+        } else {
+          this.notesMissed++;
+        }
+      }
+
+      reset() {
+        this.totalScore = 0;
+        this.notesHit = 0;
+        this.notesMissed = 0;
       }
     }
 
-    let detector = null;
-    let scorer = null;
-    let audioContext = null;
-    let analyser = null;
-    let micStream = null;
-    let source = null;
-    let isRunning = false;
-    let animationId = null;
+    class AudioEngine {
+      constructor() {
+        this.audioContext = null;
+        this.analyser = null;
+        this.source = null;
+        this.stream = null;
+      }
 
-    let songNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
-    let currentNoteIndex = 0;
-    let lastNoteChange = 0;
-    const NOTE_DURATION_MS = 2000;
+      async init() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Este navegador no soporta getUserMedia');
+        }
 
-    async function startKaraoke() {
-      try {
-        logMessage('Iniciando karaoke...');
-        document.getElementById('startBtn').disabled = true;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          throw new Error('Este navegador no soporta Web Audio API');
+        }
 
-        micStream = await navigator.mediaDevices.getUserMedia({
+        this.stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
@@ -552,180 +535,245 @@
           }
         });
 
-        logMessage('Micrófono permitido');
+        this.audioContext = new AudioContextClass();
 
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioContext = new AudioContextClass();
-
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
+        if (!this.audioContext || typeof this.audioContext.createAnalyser !== 'function') {
+          throw new Error('No se pudo crear un AudioContext válido');
         }
 
-        detector = new AdvancedKaraokeDetector(audioContext.sampleRate);
-        scorer = new KaraokeScorer(detector);
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
 
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 4096;
-        analyser.smoothingTimeConstant = 0.1;
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 4096;
+        this.analyser.smoothingTimeConstant = 0.1;
 
-        source = audioContext.createMediaStreamAudioSource(micStream);
-        source.connect(analyser);
+        if (typeof this.audioContext.createMediaStreamSource !== 'function') {
+          throw new Error('createMediaStreamSource no está disponible en este navegador');
+        }
 
-        isRunning = true;
-        lastNoteChange = performance.now();
+        this.source = this.audioContext.createMediaStreamSource(this.stream);
+        this.source.connect(this.analyser);
 
-        const timeData = new Float32Array(analyser.fftSize);
-
-        const detect = (timestamp) => {
-          if (!isRunning) return;
-
-          analyser.getFloatTimeDomainData(timeData);
-
-          const freq = detector.detectPitch(timeData);
-
-          if (freq) {
-            detector.detectVoiceType(freq);
-            updateVoiceTypeUI();
-          }
-
-          if (timestamp - lastNoteChange >= NOTE_DURATION_MS) {
-            currentNoteIndex = (currentNoteIndex + 1) % songNotes.length;
-            lastNoteChange = timestamp;
-          }
-
-          const expectedNote = songNotes[currentNoteIndex];
-
-          if (freq) {
-            const result = scorer.evaluateDetectedFrequency(freq, expectedNote);
-            updateUI(result);
-          } else {
-            updateUINoDetection(expectedNote);
-          }
-
-          animationId = requestAnimationFrame(detect);
+        return {
+          sampleRate: this.audioContext.sampleRate
         };
+      }
 
-        document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('stopBtn').style.display = 'block';
+      getTimeDomainData() {
+        if (!this.analyser) return null;
 
-        logMessage('KARAOKE INICIADO');
-        animationId = requestAnimationFrame(detect);
+        const data = new Float32Array(this.analyser.fftSize);
+        this.analyser.getFloatTimeDomainData(data);
+        return data;
+      }
 
-      } catch (error) {
-        logMessage('Error: ' + error.message, true);
-        document.getElementById('startBtn').disabled = false;
+      async stop() {
+        if (this.source) {
+          try { this.source.disconnect(); } catch {}
+          this.source = null;
+        }
+
+        if (this.analyser) {
+          try { this.analyser.disconnect(); } catch {}
+          this.analyser = null;
+        }
+
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+          this.stream = null;
+        }
+
+        if (this.audioContext) {
+          await this.audioContext.close();
+          this.audioContext = null;
+        }
       }
     }
 
-    function stopKaraoke() {
-      isRunning = false;
+    class KaraokeApp {
+      constructor() {
+        this.logger = new Logger(document.getElementById('consoleLog'));
+        this.audioEngine = new AudioEngine();
+        this.pitchDetector = null;
+        this.scoreEngine = new ScoreEngine();
 
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
+        this.songNotes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+        this.currentNoteIndex = 0;
+        this.noteDurationMs = 2000;
+        this.lastNoteChange = 0;
+        this.isRunning = false;
+        this.animationId = null;
+
+        this.cacheElements();
+        this.bindEvents();
+        this.renderInitialState();
       }
 
-      if (source) {
-        try { source.disconnect(); } catch {}
-        source = null;
+      cacheElements() {
+        this.startBtn = document.getElementById('startBtn');
+        this.stopBtn = document.getElementById('stopBtn');
+        this.voiceTypeEl = document.getElementById('voiceType');
+        this.currentFreqEl = document.getElementById('currentFreq');
+        this.expectedFreqEl = document.getElementById('expectedFreq');
+        this.noteExpectedEl = document.getElementById('noteExpected');
+        this.noteFeedbackEl = document.getElementById('noteFeedback');
+        this.accuracyTextEl = document.getElementById('accuracyText');
+        this.accuracyBarEl = document.getElementById('accuracyBar');
+        this.trendArrowEl = document.getElementById('trendArrow');
+        this.totalScoreEl = document.getElementById('totalScore');
+        this.notesHitEl = document.getElementById('notesHit');
+        this.notesMissedEl = document.getElementById('notesMissed');
       }
 
-      if (analyser) {
-        try { analyser.disconnect(); } catch {}
-        analyser = null;
+      bindEvents() {
+        this.startBtn.addEventListener('click', () => this.start());
+        this.stopBtn.addEventListener('click', () => this.stop());
       }
 
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
+      renderInitialState() {
+        const note = this.songNotes[this.currentNoteIndex];
+        this.noteExpectedEl.textContent = note;
+        this.expectedFreqEl.textContent = `${NOTES[note].toFixed(1)} Hz`;
       }
 
-      if (audioContext) {
-        audioContext.close();
-        audioContext = null;
+      async start() {
+        try {
+          this.logger.log('Iniciando karaoke...');
+          this.startBtn.disabled = true;
+
+          const { sampleRate } = await this.audioEngine.init();
+
+          this.pitchDetector = new PitchDetector(sampleRate);
+          this.scoreEngine.reset();
+          this.currentNoteIndex = 0;
+          this.lastNoteChange = performance.now();
+          this.isRunning = true;
+
+          this.startBtn.style.display = 'none';
+          this.stopBtn.style.display = 'block';
+
+          this.logger.log('Micrófono permitido');
+          this.logger.log('Motor de audio iniciado');
+          this.logger.log('Detección activa');
+
+          this.loop();
+        } catch (error) {
+          this.logger.log(error.message || 'Error al iniciar', true);
+          this.startBtn.disabled = false;
+        }
       }
 
-      document.getElementById('startBtn').style.display = 'block';
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('stopBtn').style.display = 'none';
+      async stop() {
+        this.isRunning = false;
 
-      logMessage('Karaoke detenido');
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+          this.animationId = null;
+        }
+
+        await this.audioEngine.stop();
+
+        this.startBtn.style.display = 'block';
+        this.startBtn.style.display = 'block';
+        this.startBtn.disabled = false;
+        this.stopBtn.style.display = 'none';
+
+        this.logger.log('Karaoke detenido');
+      }
+
+      loop = () => {
+        if (!this.isRunning) return;
+
+        const now = performance.now();
+
+        if (now - this.lastNoteChange >= this.noteDurationMs) {
+          this.currentNoteIndex = (this.currentNoteIndex + 1) % this.songNotes.length;
+          this.lastNoteChange = now;
+        }
+
+        const expectedNote = this.songNotes[this.currentNoteIndex];
+        const samples = this.audioEngine.getTimeDomainData();
+        const frequency = this.pitchDetector.detectPitch(samples);
+
+        this.noteExpectedEl.textContent = expectedNote;
+        this.expectedFreqEl.textContent = `${NOTES[expectedNote].toFixed(1)} Hz`;
+
+        if (frequency) {
+          const result = this.scoreEngine.evaluate(frequency, expectedNote);
+          this.scoreEngine.registerResult(result);
+
+          this.updateVoiceType(this.pitchDetector.detectVoiceType(frequency));
+          this.updateTrend(this.pitchDetector.getTrend());
+          this.updateDetectionUI(result);
+        } else {
+          this.updateNoSignalUI();
+        }
+
+        this.updateScoreUI();
+        this.animationId = requestAnimationFrame(this.loop);
+      };
+
+      updateVoiceType(type) {
+        if (type === 'unknown') {
+          this.voiceTypeEl.className = 'voice-type';
+          this.voiceTypeEl.textContent = 'Detectando voz...';
+          return;
+        }
+
+        this.voiceTypeEl.className = 'voice-type detected';
+        this.voiceTypeEl.textContent = type === 'grave'
+          ? '🎙️ Voz grave'
+          : '🎤 Voz aguda';
+      }
+
+      updateTrend(trend) {
+        if (trend === 'up') {
+          this.trendArrowEl.textContent = '📈';
+        } else if (trend === 'down') {
+          this.trendArrowEl.textContent = '📉';
+        } else {
+          this.trendArrowEl.textContent = '➡️';
+        }
+      }
+
+      updateDetectionUI(result) {
+        this.currentFreqEl.textContent = result.detected ? `${result.detected} Hz` : '-- Hz';
+        this.accuracyTextEl.textContent = `${result.accuracy}%`;
+        this.accuracyBarEl.style.width = `${result.accuracy}%`;
+        this.accuracyBarEl.textContent = result.accuracy > 10 ? `${result.accuracy}%` : '';
+
+        if (result.isCorrect) {
+          this.noteFeedbackEl.className = 'note-feedback correct';
+          this.noteFeedbackEl.textContent = '✅ ¡Nota correcta!';
+        } else {
+          this.noteFeedbackEl.className = 'note-feedback incorrect';
+          this.noteFeedbackEl.textContent = result.cents > 0
+            ? '⬇️ Vas un poco alto'
+            : '⬆️ Vas un poco bajo';
+        }
+      }
+
+      updateNoSignalUI() {
+        this.currentFreqEl.textContent = '-- Hz';
+        this.accuracyTextEl.textContent = '0%';
+        this.accuracyBarEl.style.width = '0%';
+        this.accuracyBarEl.textContent = '';
+        this.noteFeedbackEl.className = 'note-feedback';
+        this.noteFeedbackEl.textContent = '🔇 Sin señal de voz';
+        this.updateTrend('stable');
+      }
+
+      updateScoreUI() {
+        this.totalScoreEl.textContent = this.scoreEngine.totalScore;
+        this.notesHitEl.textContent = this.scoreEngine.notesHit;
+        this.notesMissedEl.textContent = this.scoreEngine.notesMissed;
+      }
     }
 
-    function updateUI(result) {
-      document.getElementById('currentFreq').textContent = result.detected ? result.detected + ' Hz' : '-- Hz';
-      document.getElementById('expectedFreq').textContent = result.expected + ' Hz';
-      document.getElementById('noteExpected').textContent = result.note;
-
-      const accuracy = Number(result.accuracy) || 0;
-      document.getElementById('accuracyText').textContent = accuracy + '%';
-
-      const accuracyBar = document.getElementById('accuracyBar');
-      accuracyBar.style.width = accuracy + '%';
-      accuracyBar.textContent = accuracy > 10 ? accuracy + '%' : '';
-
-      const feedback = document.getElementById('noteFeedback');
-      if (result.isCorrect) {
-        feedback.className = 'note-feedback correct';
-        feedback.textContent = '✅ ¡Nota correcta!';
-      } else {
-        feedback.className = 'note-feedback incorrect';
-        feedback.textContent = '❌ Nota incorrecta';
-      }
-
-      updateTrendIndicator(result.trend);
-
-      document.getElementById('totalScore').textContent = scorer.totalScore;
-      document.getElementById('notesHit').textContent = scorer.notesHit;
-      document.getElementById('notesMissed').textContent = scorer.notesMissed;
-    }
-
-    function updateUINoDetection(expectedNote) {
-      document.getElementById('currentFreq').textContent = '-- Hz';
-      document.getElementById('expectedFreq').textContent = NOTES[expectedNote].toFixed(1) + ' Hz';
-      document.getElementById('noteExpected').textContent = expectedNote;
-      document.getElementById('accuracyText').textContent = '0%';
-
-      const feedback = document.getElementById('noteFeedback');
-      feedback.textContent = '🔇 Sin sonido';
-      feedback.className = 'note-feedback';
-
-      const accuracyBar = document.getElementById('accuracyBar');
-      accuracyBar.style.width = '0%';
-      accuracyBar.textContent = '';
-
-      updateTrendIndicator('stable');
-    }
-
-    function updateTrendIndicator(trend) {
-      const arrow = document.getElementById('trendArrow');
-
-      if (trend === 'up') {
-        arrow.textContent = '📈';
-      } else if (trend === 'down') {
-        arrow.textContent = '📉';
-      } else {
-        arrow.textContent = '➡️';
-      }
-    }
-
-    function updateVoiceTypeUI() {
-      const voiceTypeEl = document.getElementById('voiceType');
-      const voiceType = detector.voiceType;
-
-      if (voiceType === 'male') {
-        voiceTypeEl.className = 'voice-type detected';
-        voiceTypeEl.textContent = '🎙️ Voz grave';
-      } else if (voiceType === 'female') {
-        voiceTypeEl.className = 'voice-type detected';
-        voiceTypeEl.textContent = '🎤 Voz aguda';
-      } else {
-        voiceTypeEl.className = 'voice-type';
-        voiceTypeEl.textContent = 'Detectando voz...';
-      }
-    }
-
-    logMessage('Script cargado correctamente');
+    const app = new KaraokeApp();
+    console.log('Script cargado correctamente');
   </script>
 </body>
 </html>
